@@ -2,6 +2,9 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import cloudinary from '../cloudinary.js';
+import upload from '../middleware/upload.js';
+import streamifier from 'streamifier';
 
 const router = express.Router();
 
@@ -132,11 +135,85 @@ router.delete('/profile', async (req, res) => {
         if (!token) return res.status(401).json({ message: 'Нет токена' });
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.id);
+
+        if (user.image) {
+            const publicId = user.image.split('/').pop().split('.')[0];
+            await cloudinary.uploader.destroy(`user_avatars/${publicId}`);
+        }
+
         await User.findByIdAndDelete(decoded.id);
 
         res.clearCookie('token');
         res.json({ message: 'Аккаунт удален' });
     } catch (e) {
+        res.status(500).json({ message: 'Ошибка сервера' });
+    }
+});
+
+const streamUpload = (fileBuffer) => {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            { folder: 'user_avatars' },
+            (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+            }
+        );
+        streamifier.createReadStream(fileBuffer).pipe(stream);
+    });
+};
+
+router.put('/profile/avatar', upload.single('avatar'), async (req, res) => {
+    try {
+        const token = req.cookies.token;
+        if (!token) return res.status(401).json({ message: 'Нет токена' });
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.id);
+
+        if (!req.file)
+            return res.status(400).json({ message: 'Файл не загружен' });
+
+        // Удаляем старый аватар, если есть
+        if (user.avatar) {
+            const publicId = user.avatar.split('/').pop().split('.')[0];
+            await cloudinary.uploader.destroy(`user_avatars/${publicId}`);
+        }
+
+        // Загружаем новый аватар на Cloudinary
+        const result = await streamUpload(req.file.buffer);
+        user.avatar = result.secure_url;
+        await user.save();
+
+        res.json(user);
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ message: 'Ошибка сервера' });
+    }
+});
+
+router.delete('/profile/avatar', async (req, res) => {
+    try {
+        const token = req.cookies.token;
+        if (!token) return res.status(401).json({ message: 'Нет токена' });
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        const user = await User.findById(decoded.id);
+
+        if (user.image) {
+            // достаём public_id из ссылки Cloudinary
+            const publicId = user.image.split('/').pop().split('.')[0];
+            await cloudinary.uploader.destroy(`user_avatars/${publicId}`);
+        }
+
+        user.image = undefined;
+        await user.save();
+
+        res.json({ message: 'Аватар удалён' });
+    } catch (e) {
+        console.error(e);
         res.status(500).json({ message: 'Ошибка сервера' });
     }
 });
