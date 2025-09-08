@@ -55,17 +55,22 @@ router.post('/', upload.single('image'), async (req, res) => {
 
 router.get('/', async (req, res) => {
     try {
-        let { page = 1, limit = 48, filter = 'all' } = req.query;
+        let { page = 1, limit = 48, filter = 'all', tags } = req.query;
         page = parseInt(page);
         limit = parseInt(limit);
-        // фильтр
+
         let sortOption = {};
-        if (filter === 'new') {
-            sortOption = { createdAt: -1 }; // сначала новые
+        if (filter === 'new') sortOption = { createdAt: -1 };
+
+        let filterQuery = {};
+        if (tags) {
+            const tagsArray = Array.isArray(tags) ? tags : tags.split(',');
+            filterQuery.tags = { $in: tagsArray };
         }
 
-        const totalItems = await Product.countDocuments();
-        const products = await Product.find()
+        const totalItems = await Product.countDocuments(filterQuery);
+
+        const products = await Product.find(filterQuery)
             .populate('owner', 'username email')
             .sort(sortOption)
             .skip((page - 1) * limit)
@@ -77,6 +82,25 @@ router.get('/', async (req, res) => {
             totalPages: Math.ceil(totalItems / limit),
             currentPage: page,
         });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.get('/tags', async (req, res) => {
+    try {
+        const tagsWithCount = await Product.aggregate([
+            { $unwind: '$tags' },
+            { $group: { _id: '$tags', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+        ]);
+
+        const formattedTags = tagsWithCount.map((t) => ({
+            tag: t._id,
+            count: t.count,
+        }));
+
+        res.json(formattedTags);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
