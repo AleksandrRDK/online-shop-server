@@ -56,13 +56,13 @@ router.post('/login', async (req, res) => {
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
             expiresIn: '7d',
         });
-
+        const isProduction = process.env.NODE_ENV === 'production';
         // ставим токен в HttpOnly куку
         res.cookie('token', token, {
             httpOnly: true,
-            secure: true, // в dev можно false
-            sameSite: 'none',
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
+            secure: isProduction, // true только на проде
+            sameSite: isProduction ? 'none' : 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
         res.json({
@@ -79,7 +79,14 @@ router.post('/login', async (req, res) => {
 
 router.post('/logout', (req, res) => {
     try {
-        res.cookie('token', '', { maxAge: 0, path: '/' });
+        const isProduction = process.env.NODE_ENV === 'production';
+        res.cookie('token', '', {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
+            maxAge: 0,
+            path: '/',
+        });
         res.status(200).json({ message: 'Вы вышли' });
     } catch (err) {
         res.status(500).json({ message: 'Ошибка сервера' });
