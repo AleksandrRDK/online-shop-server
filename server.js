@@ -9,6 +9,7 @@ import ProductRoutes from './routes/products.js';
 import CartRoutes from './routes/carts.js';
 import OrderRoutes from './routes/orders.js';
 import PaymentRoutes from './routes/payment.js';
+import authRoutes from './routes/auth.js';
 
 dotenv.config();
 
@@ -43,6 +44,7 @@ mongoose
 app.get('/', (req, res) => {
     res.send('Сервер работает!');
 });
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/products', ProductRoutes);
 app.use('/api/carts', CartRoutes);
