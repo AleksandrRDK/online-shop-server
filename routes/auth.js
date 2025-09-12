@@ -21,6 +21,10 @@ function generateRefreshToken() {
     return crypto.randomBytes(64).toString('hex');
 }
 
+router.get('/cookies', (req, res) => {
+    res.json({ cookies: req.cookies });
+});
+
 router.post('/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
