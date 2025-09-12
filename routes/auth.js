@@ -154,7 +154,7 @@ router.post('/refresh', async (req, res) => {
             foundSession.userId,
             foundSession._id
         );
-        res.json({ accessToken: newAccessToken });
+        res.json({ accessToken: newAccessToken, cookies: req.cookies });
     } catch (err) {
         console.error('Ошибка в /refresh:', err);
         res.status(500).json({ message: 'Ошибка сервера' });
