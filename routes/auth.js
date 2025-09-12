@@ -188,8 +188,15 @@ router.post('/logout', async (req, res) => {
                 break;
             }
         }
+        const isProduction = process.env.NODE_ENV === 'production';
 
-        res.clearCookie('refreshToken');
+        res.clearCookie('refreshToken', {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
+            path: '/',
+        });
+
         res.json({ message: 'Вы вышли из системы' });
     } catch (err) {
         console.error('Ошибка в /logout:', err);
