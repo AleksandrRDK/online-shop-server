@@ -4,15 +4,15 @@ import User from '../models/User.js';
 import cloudinary from '../cloudinary.js';
 import upload from '../middleware/upload.js';
 import streamifier from 'streamifier';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.post('/', upload.single('image'), async (req, res) => {
+router.post('/', upload.single('image'), authMiddleware, async (req, res) => {
     try {
-        const { title, description, price, tags, characteristics, ownerId } =
-            req.body;
+        const { title, description, price, tags, characteristics } = req.body;
 
-        const owner = await User.findById(ownerId);
+        const owner = await User.findById(req.userId);
         if (!owner)
             return res.status(404).json({ message: 'Пользователь не найден' });
 
@@ -106,12 +106,12 @@ router.get('/tags', async (req, res) => {
     }
 });
 
-router.get('/user/:userId', async (req, res) => {
+router.get('/user', authMiddleware, async (req, res) => {
     try {
         let { page = 1, limit = 48 } = req.query;
         page = parseInt(page);
         limit = parseInt(limit);
-        const filter = { owner: req.params.userId };
+        const filter = { owner: req.userId };
 
         const totalItems = await Product.countDocuments(filter);
 

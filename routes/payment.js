@@ -3,6 +3,7 @@ import { YooCheckout } from '@a2seven/yoo-checkout';
 import { v4 as uuidv4 } from 'uuid';
 import User from '../models/User.js';
 import Order from '../models/Order.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -11,14 +12,13 @@ const YooKassa = new YooCheckout({
     secretKey: process.env.YOOKASSA_API_SECRET_KEY,
 });
 
-router.post('/create', async (req, res) => {
+router.post('/create', authMiddleware, async (req, res) => {
     try {
-        const { userId } = req.body;
-        if (!userId)
+        if (!req.userId)
             return res.status(400).json({ message: 'Требуется userId' });
 
         // Получаем пользователя и корзину
-        const user = await User.findById(userId).populate('cart.productId');
+        const user = await User.findById(req.userId).populate('cart.productId');
         if (!user)
             return res.status(404).json({ message: 'Пользователь не найден' });
         if (!user.cart || user.cart.length === 0)
@@ -78,7 +78,7 @@ router.post('/create', async (req, res) => {
     }
 });
 
-router.post('/webhook', express.json(), async (req, res) => {
+router.post('/webhook', async (req, res) => {
     try {
         const { event, object } = req.body;
 

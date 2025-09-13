@@ -1,13 +1,12 @@
 import express from 'express';
 import Order from '../models/Order.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.get('/user/:userId', async (req, res) => {
+router.get('/user', authMiddleware, async (req, res) => {
     try {
-        const { userId } = req.params;
-
-        const orders = await Order.find({ userId })
+        const orders = await Order.find({ userId: req.userId })
             .populate('userId', 'username email')
             .populate('products.productId', 'title price image')
             .sort({ createdAt: -1 });

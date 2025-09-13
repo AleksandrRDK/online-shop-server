@@ -21,10 +21,6 @@ function generateRefreshToken() {
     return crypto.randomBytes(64).toString('hex');
 }
 
-router.get('/cookies', (req, res) => {
-    res.json({ cookies: req.cookies });
-});
-
 router.post('/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
@@ -133,7 +129,6 @@ router.post('/refresh', async (req, res) => {
             return res.status(401).json({ message: 'Нет refresh токена' });
         }
 
-        // Берём все активные сессии
         const sessions = await Session.find({
             expiresAt: { $gt: new Date() },
         });
@@ -158,7 +153,7 @@ router.post('/refresh', async (req, res) => {
             foundSession.userId,
             foundSession._id
         );
-        res.json({ accessToken: newAccessToken, cookies: req.cookies });
+        res.json({ accessToken: newAccessToken });
     } catch (err) {
         console.error('Ошибка в /refresh:', err);
         res.status(500).json({ message: 'Ошибка сервера' });
@@ -184,7 +179,7 @@ router.post('/logout', async (req, res) => {
                 session.refreshTokenHash
             );
             if (match) {
-                await session.deleteOne(); // удаляем найденную сессию
+                await session.deleteOne();
                 break;
             }
         }
