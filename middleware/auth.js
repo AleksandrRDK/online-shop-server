@@ -11,8 +11,13 @@ export const authMiddleware = (req, res, next) => {
         req.sessionId = decoded.sessionId;
         next();
     } catch (err) {
-        res.status(401).json({
-            message: 'Неверный или просроченный access токен',
-        });
+        if (err.name === 'TokenExpiredError') {
+            return res
+                .status(401)
+                .json({ message: 'Access токен истёк', code: 'TOKEN_EXPIRED' });
+        }
+        return res
+            .status(401)
+            .json({ message: 'Неверный access токен', code: 'TOKEN_INVALID' });
     }
 };

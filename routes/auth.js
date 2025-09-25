@@ -3,12 +3,14 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
+import { authMiddleware } from '../middleware/auth.js';
+
 import User from '../models/User.js';
 import Session from '../models/Session.js';
 
 const router = express.Router();
 
-const ACCESS_EXPIRES_IN = '15m';
+const ACCESS_EXPIRES_IN = '30m';
 const REFRESH_EXPIRES_DAYS = 30;
 
 function generateAccessToken(userId, sessionId) {
@@ -161,10 +163,10 @@ router.post('/refresh', async (req, res) => {
 });
 
 // LOGOUT
-router.post('/logout', async (req, res) => {
+router.post('/logout', authMiddleware, async (req, res) => {
     try {
         const refreshToken = req.cookies.refreshToken;
-        const { userId } = req.body;
+        const userId = req.userId;
 
         if (!refreshToken || !userId) {
             return res.status(400).json({ message: 'Нет данных для выхода' });
