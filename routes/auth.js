@@ -194,7 +194,7 @@ router.post('/logout', authMiddleware, async (req, res) => {
             path: '/',
         });
 
-        res.json({ message: 'Вы вышли из системы' });
+        res.json({ message: 'Вы вышли из аккаунта' });
     } catch (err) {
         console.error('Ошибка в /logout:', err);
         res.status(500).json({ message: 'Ошибка сервера' });
