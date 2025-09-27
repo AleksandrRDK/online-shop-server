@@ -117,6 +117,7 @@ router.get('/user', authMiddleware, async (req, res) => {
 
         const products = await Product.find(filter)
             .populate('owner', 'username email')
+            .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
             .limit(limit);
 
